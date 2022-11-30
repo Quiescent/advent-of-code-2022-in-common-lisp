@@ -5,7 +5,8 @@
   :depends-on (:cl-ppcre :trivia :trivia.ppcre :arrow-macros :metabang-bind)
   :components ((:module "src"
                 :components
-                ((:file "main"))))
+                ((:file "main")
+                 (:file "2022-day-1"))))
   :description ""
   :in-order-to ((test-op (test-op "advent-of-code-2022-in-common-lisp/tests"))))
 
