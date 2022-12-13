@@ -2,10 +2,11 @@
   :version "0.1.0"
   :author ""
   :license ""
-  :depends-on (:cl-ppcre :trivia :trivia.ppcre :arrow-macros :metabang-bind :datastructures)
+  :depends-on (:cl-ppcre :trivia :trivia.ppcre :arrow-macros :metabang-bind :datastructures :fset)
   :components ((:module "src"
                 :components
                 ((:file "main")
+                 (:file "2022-day-14")
                  (:file "2022-day-13")
                  (:file "2022-day-12")
                  (:file "2022-day-11")
