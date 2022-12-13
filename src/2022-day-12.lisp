@@ -159,71 +159,73 @@
         (values (car front)
                 (cons (cdr front) end)))))
 
+(defun search-from (map seen q dist)
+  (bind (((:values coord popped-q) (pure-queue-dequeue q))
+         ((x . y) coord))
+    (if (eq (aref map y x)
+            (1+ (- (char-code #\z)
+                   (char-code #\a))))
+        (fset:@ dist (fset:seq x y))
+        (bind ((go-to
+                (->> (mapcar
+                      (lambda (delta)
+                        (bind (((dx dy) delta)
+                               (xx (+ x dx))
+                               (yy (+ y dy)))
+                          (when (and (>= xx 0)
+                                     (< xx
+                                        (array-dimension map 1))
+                                     (>= yy 0)
+                                     (< yy
+                                        (array-dimension map 0))
+                                     (<= (- (aref map y x)
+                                            (aref map yy xx))
+                                         1)
+                                     (not (fset:contains?
+                                           seen
+                                           (fset:seq xx yy))))
+                            (cons xx yy))))
+                      deltas)
+                  (remove nil)))
+               (new-seen (reduce (lambda (new-seen new-coord)
+                                   (fset:with new-seen
+                                              (fset:seq (car new-coord)
+                                                        (cdr new-coord))))
+                                 go-to
+                                 :initial-value seen))
+               (new-q (reduce (lambda (new-queue new-coord)
+                                (pure-queue-enqueue new-queue new-coord))
+                              go-to
+                              :initial-value popped-q))
+               (old-d (fset:@ dist (fset:seq x y)))
+               (new-dist (reduce (lambda (new-dist new-coord)
+                                   (fset:with new-dist
+                                              (fset:seq (car new-coord)
+                                                        (cdr new-coord))
+                                              (1+ old-d)))
+                                 go-to
+                                 :initial-value dist)))
+          (search-from map new-seen new-q new-dist)))))
+
 (defun part-2-alt ()
   (bind (((map (end-x . end-y))
           (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-12.in"))
             (read-input f))))
-    (labels ((search-from (seen q dist)
-               (bind (((:values coord popped-q) (pure-queue-dequeue q))
-                      ((x . y) coord))
-                 (if (eq (aref map y x)
-                         (1+ (- (char-code #\z)
-                                (char-code #\a))))
-                     (fset:@ dist (fset:seq x y))
-                     (bind ((go-to
-                             (->> (mapcar
-                                   (lambda (delta)
-                                     (bind (((dx dy) delta)
-                                            (xx (+ x dx))
-                                            (yy (+ y dy)))
-                                       (when (and (>= xx 0)
-                                                  (< xx
-                                                     (array-dimension map 1))
-                                                  (>= yy 0)
-                                                  (< yy
-                                                     (array-dimension map 0))
-                                                  (<= (- (aref map y x)
-                                                         (aref map yy xx))
-                                                      1)
-                                                  (not (fset:contains?
-                                                        seen
-                                                        (fset:seq xx yy))))
-                                         (cons xx yy))))
-                                   deltas)
-                               (remove nil)))
-                            (new-seen (reduce (lambda (new-seen new-coord)
-                                                (fset:with new-seen
-                                                           (fset:seq (car new-coord)
-                                                                     (cdr new-coord))))
-                                              go-to
-                                              :initial-value seen))
-                            (new-q (reduce (lambda (new-queue new-coord)
-                                             (pure-queue-enqueue new-queue new-coord))
-                                           go-to
-                                           :initial-value popped-q))
-                            (old-d (fset:@ dist (fset:seq x y)))
-                            (new-dist (reduce (lambda (new-dist new-coord)
-                                                (fset:with new-dist
-                                                           (fset:seq (car new-coord)
-                                                                     (cdr new-coord))
-                                                           (1+ old-d)))
-                                              go-to
-                                              :initial-value dist)))
-                       (search-from new-seen new-q new-dist))))))
-      (search-from (fset:set)
-                   (pure-queue-enqueue (pure-queue)
-                                       (cons 0 20))
-                   (fset:with (fset:map) (fset:seq 0 20) 1))
-      ;; (iter
-      ;;   (for y from 0 below (array-dimension map 0))
-      ;;   (minimizing
-      ;;    (iter
-      ;;      (for x from 0 below (array-dimension map 1))
-      ;;      (when (= 0 (aref map y x))
-      ;;        (minimizing (search-from (fset:set)
-      ;;                                 (pure-queue-enqueue (pure-queue)
-      ;;                                                     (cons x y))
-      ;;                                 0))))))
-      )))
+    (search-from map
+                 (fset:set)
+                 (pure-queue-enqueue (pure-queue)
+                                     (cons 0 20))
+                 (fset:with (fset:map) (fset:seq 0 20) 1))
+    ;; (iter
+    ;;   (for y from 0 below (array-dimension map 0))
+    ;;   (minimizing
+    ;;    (iter
+    ;;      (for x from 0 below (array-dimension map 1))
+    ;;      (when (= 0 (aref map y x))
+    ;;        (minimizing (search-from (fset:set)
+    ;;                                 (pure-queue-enqueue (pure-queue)
+    ;;                                                     (cons x y))
+    ;;                                 0))))))
+    ))
 
 ;; Correct: 478
