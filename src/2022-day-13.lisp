@@ -76,27 +76,23 @@
 ;; Wrong: 780
 
 (defun part-2 ()
-  (let ((input (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-13.in"))
-                 (do ((line (read-line f nil nil) (read-line f nil nil))
-                      (signals nil))
-                     ((null line) signals)
-                   (when (not (equal line ""))
-                     (push (->> (regex-replace-all ","
-                                                   (regex-replace-all "\\["
-                                                                      (regex-replace-all "\\]" line ")")
-                                                                      "(")
-                                                   " ")
-                             read-from-string)
-                           signals)))))
-        (sig-1 (list (list 2)))
-        (sig-2 (list (list 6))))
-    (apply #'*
-           (iter
-             (for signal in (sort (cons sig-1
-                                        (cons sig-2
-                                              input))
-                                  #'is-less))
-             (for i from 1)
-             (when (or (eq signal sig-1)
-                       (eq signal sig-2))
-               (collecting i))))))
+  (let* ((input (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-13.in"))
+                  (do ((line (read-line f nil nil) (read-line f nil nil))
+                       (signals nil))
+                      ((null line) signals)
+                    (when (not (equal line ""))
+                      (push (->> (regex-replace-all ","
+                                                    (regex-replace-all "\\["
+                                                                       (regex-replace-all "\\]" line ")")
+                                                                       "(")
+                                                    " ")
+                              read-from-string)
+                            signals)))))
+         (sig-1 (list (list 2)))
+         (sig-2 (list (list 6)))
+         (sorted (sort (cons sig-1
+                             (cons sig-2
+                                   input))
+                       #'is-less)))
+    (* (1+ (position sig-1 sorted))
+       (1+ (position sig-2 sorted)))))
