@@ -50,7 +50,7 @@
     (with x = 500)
     (with y = 0)
     (when (>= y max-y)
-      (return t))
+      (return 'fell))
     (for d = (+ y 1))
     (for l = (- x 1))
     (for r = (+ x 1))
@@ -62,7 +62,7 @@
             (if dr
                 (progn
                   (setf (aref plane x y) t)
-                  (return nil))
+                  (return (cons x y)))
                 (progn
                   (incf x)
                   (incf y)))
@@ -74,10 +74,12 @@
 (defun simulate-sand (plane min-x min-y max-x max-y)
   (iter
     (with fell-off-bottom = nil)
-    (while (not fell-off-bottom))
+    (while (not (eq fell-off-bottom 'fell)))
     (setf fell-off-bottom
           (drop-grain plane min-x min-y max-x max-y))
     (counting t)))
+
+(defvar total-grains 0)
 
 (defun part-1 ()
   (bind ((input (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-14.in"))
@@ -89,9 +91,63 @@
                                                            (split "," coord) ))))
                          lines))))
          ((min-x min-y max-x max-y) (bounds input))
-         (plane (make-array (list (1+ max-x) (1+ max-y)) :initial-element nil)))
+         (plane (make-array (list (1+ max-x) (1+ max-y)) :initial-element nil))
+         (total-grains 0))
     (fill-lines input plane)
-    (1- (simulate-sand plane min-x min-y max-x max-y))))
+    (simulate-with-drawing plane min-x min-y max-x max-y)
+    (format t "Grains: ~a~%" total-grains)))
+
+(defun draw-plane (plane win min-x min-y camera-x camera-y)
+  (bind (((max-x max-y) (array-dimensions plane))
+         (start-y (max 0 (- camera-y 15)))
+         (end-y (min (+ camera-y 15) max-y))
+         (start-x (max 0 (- camera-x 40)))
+         (end-x (min max-x (+ camera-x 40))))
+    (iter
+      (for y from start-y below end-y)
+      (iter
+        (for x from start-x below end-x)
+        ;; (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "out")
+        ;;                    :if-exists :append
+        ;;                    :if-does-not-exist :create
+        ;;                    :direction :output)
+        ;;   (format f "(list x y): ~a~%" (list (- x start-x)
+        ;;                                      (- y start-y))))
+        (croatoan:move win (- y start-y) (- x start-x))
+        (if (aref plane x y)
+            (croatoan:add win #\#)
+            (croatoan:add win #\.))))
+    (croatoan:refresh win)))
+
+(defun simulate-with-drawing (plane min-x min-y max-x max-y)
+  (bind ((grains 0)
+         (camera-x 500)
+         (camera-y 15))
+    (croatoan:with-screen (scr
+                           :input-blocking nil
+                           :input-echoing nil
+                           :cursor-visible nil)
+      (croatoan:clear scr)
+      (croatoan:bind scr #\q (lambda (win e)
+                               (croatoan:exit-event-loop win e)))
+      (croatoan:bind scr nil (lambda (win e)
+                               (bind ((last-coord (drop-grain plane min-x min-y max-x max-y)))
+                                 (when (eq 'fell last-coord)
+                                   (setf total-grains grains)
+                                   (croatoan:exit-event-loop win e))
+                                 (incf grains)
+                                 (bind (((last-x . last-y) last-coord))
+                                   (when (or (> last-x (+ camera-x 40))
+                                             (< last-x (- camera-x 40)))
+                                     (setf camera-x (- last-x 40))
+                                     (croatoan:clear win))
+                                   (when (or (> last-y (+ camera-y 15))
+                                             (< last-y (- camera-y 40)))
+                                     (setf camera-y (- last-y 15))
+                                     (croatoan:clear win)))
+                                 (draw-plane plane win min-x min-y camera-x camera-y))))
+      (setf (croatoan:frame-rate scr) 30)
+      (croatoan:run-event-loop scr))))
 
 (defun drop-grain-floor (plane min-x min-y max-x max-y)
   (iter

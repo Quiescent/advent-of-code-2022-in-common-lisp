@@ -2,7 +2,7 @@
   :version "0.1.0"
   :author ""
   :license ""
-  :depends-on (:cl-ppcre :trivia :trivia.ppcre :arrow-macros :metabang-bind :datastructures :fset)
+  :depends-on (:cl-ppcre :trivia :trivia.ppcre :arrow-macros :metabang-bind :datastructures :fset :croatoan)
   :components ((:module "src"
                 :components
                 ((:file "main")
