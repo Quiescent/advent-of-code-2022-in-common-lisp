@@ -73,15 +73,10 @@
 
 (defun simulate-sand (plane min-x min-y max-x max-y)
   (iter
-    ;; (for i from 0 below 400)
     (with fell-off-bottom = nil)
     (while (not fell-off-bottom))
     (setf fell-off-bottom
           (drop-grain plane min-x min-y max-x max-y))
-    ;; (print-plane plane min-x min-y)
-    ;; (format t "~%")
-    ;; (format t "NEW~%")
-    ;; (format t "~%")
     (counting t)))
 
 (defun part-1 ()
@@ -114,20 +109,19 @@
         (if dl
             (if dr
                 (progn
-                  (progn
-                    (setf (gethash (cons x y) plane) t)
-                    (return nil)))
+                  (if (and (= x 500)
+                           (= y 0))
+                      (return t)
+                      (progn
+                        (setf (gethash (cons x y) plane) t)
+                        (return nil))))
                 (progn
                   (incf x)
                   (incf y)))
             (progn
               (decf x)
               (incf y)))
-        (incf y))
-    (format t "(cons x y): ~a~%" (cons x y))
-    (when (and (= x 500)
-               (= y 0))
-      (return t))))
+        (incf y))))
 
 (defun print-plane-floor (plane min-x min-y max-x max-y)
   (iter
@@ -141,15 +135,10 @@
 
 (defun simulate-sand-floor (plane min-x min-y max-x max-y)
   (iter
-    ;; (for i from 0 below 400)
     (with fell-off-bottom = nil)
     (while (not fell-off-bottom))
     (setf fell-off-bottom
           (drop-grain-floor plane min-x min-y max-x max-y))
-    (print-plane-floor plane min-x min-y max-x max-y)
-    (format t "~%")
-    (format t "NEW~%")
-    (format t "~%")
     (counting t)))
 
 (defun fill-lines-floor (lines plane)
@@ -173,7 +162,7 @@
 (defun fill-bottom-line (plane min-x min-y max-x max-y)
   (iter
     (with y = (+ 2 max-y))
-    (for x from (- 500 (* 2 (- max-y min-y))) below (+ 500 (* 2 (- max-y min-y))))
+    (for x from (- 500 (* 3 (- max-y min-y))) below (+ 500 (* 3 (- max-y min-y))))
     (setf (gethash (cons x y) plane) t)))
 
 (defun part-2 ()
@@ -189,4 +178,4 @@
          (plane (make-hash-table :test #'equal)))
     (fill-lines-floor input plane)
     (fill-bottom-line plane min-x min-y max-x max-y)
-    (1- (simulate-sand-floor plane min-x min-y max-x max-y))))
+    (simulate-sand-floor plane min-x min-y max-x max-y)))
