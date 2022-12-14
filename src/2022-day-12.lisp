@@ -82,6 +82,8 @@
                                    (list output end))
                        (dotimes (x (length line))
                          (cond
+                           ((eq #\S (aref line x))
+                            (setf (aref output y x) (- 1)))
                            ((eq #\E (aref line x))
                             (progn
                               (setf (aref output y x)
@@ -173,13 +175,11 @@
                                (xx (+ x dx))
                                (yy (+ y dy)))
                           (when (and (>= xx 0)
-                                     (< xx
-                                        (array-dimension map 1))
+                                     (< xx (array-dimension map 1))
                                      (>= yy 0)
-                                     (< yy
-                                        (array-dimension map 0))
-                                     (<= (- (aref map y x)
-                                            (aref map yy xx))
+                                     (< yy (array-dimension map 0))
+                                     (<= (- (aref map yy xx)
+                                            (aref map y x))
                                          1)
                                      (not (fset:contains?
                                            seen
@@ -212,10 +212,10 @@
           (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-12.in"))
             (read-input f))))
     (search-from map
-                 (fset:set)
+                 (fset:set (fset:seq 0 0))
                  (pure-queue-enqueue (pure-queue)
-                                     (cons 0 20))
-                 (fset:with (fset:map) (fset:seq 0 20) 1))
+                                     (cons 0 0))
+                 (fset:with (fset:map) (fset:seq 0 0) 0))
     ;; (iter
     ;;   (for y from 0 below (array-dimension map 0))
     ;;   (minimizing
