@@ -179,12 +179,13 @@
 (defun search-from-with-elephants (graph rates)
   (let ((best most-negative-fixnum))
     (labels ((recur (time total room room-el travel travel-el valves used)
-               (format t "~a~%" (list time total room room-el travel travel-el valves used))
+               ;; (format t "~a~%" (list time total room room-el travel travel-el valves used))
                (cond
-                 ((= time 30) (print total))
-                 ((= (length valves) (length graph)) (print (* (rate rates valves)
-                                                               (- 30 time))))
-                 ;; ((< (* (rate rates valves) (- 30 time)) best) best)
+                 ((= time 30) total)
+                 ((= (length valves) (length graph)) (+ total
+                                                        (* (rate rates valves)
+                                                           (- 30 time))))
+                 ;; ((< (+ total (* (rate rates valves) (- 30 time))) best) best)
                  (t
                   (let ((min-time (min (or travel most-positive-fixnum)
                                        (or travel-el most-positive-fixnum))))
@@ -192,7 +193,7 @@
                       ((and (not (eq min-time most-positive-fixnum))
                             (>= min-time (- 30 time)))
                        (progn
-                         (format t "Not enough time~%")
+                         ;; (format t "Not enough time~%")
                          (recur  30
                                  (+ total (* (rate rates valves) (- 30 time)))
                                  nil
@@ -203,7 +204,7 @@
                                  nil)))
                       ((= min-time most-positive-fixnum)
                        (progn
-                         (format t "No one travelling~%")
+                         ;; (format t "No one travelling~%")
                          (iter
                            (for (distance . other-room)
                                 in (aref graph room))
@@ -220,8 +221,8 @@
                                                          total
                                                          other-room
                                                          other-room-el
-                                                         distance
-                                                         distance-el
+                                                         (1+ distance)
+                                                         (1+ distance-el)
                                                          valves
                                                          (cons other-room
                                                                (cons other-room-el
@@ -231,7 +232,7 @@
                       ((and (eq min-time travel)
                             (eq min-time travel-el))
                        (let ((delta (* min-time (rate rates valves))))
-                         (format t "Both arrive~%")
+                         ;; (format t "Both arrive~%")
                          (if (= (length used) (length rates))
                              (recur (+ time min-time)
                                     (+ total delta)
@@ -257,8 +258,8 @@
                                                              (+ total delta)
                                                              other-room
                                                              other-room-el
-                                                             distance
-                                                             distance-el
+                                                             (1+ distance)
+                                                             (1+ distance-el)
                                                              (cons room (cons room-el valves))
                                                              (cons other-room
                                                                    (cons other-room-el
@@ -267,7 +268,7 @@
                                     most-negative-fixnum))))))
                       ((eq min-time travel)
                        (let ((delta (* min-time (rate rates valves))))
-                         (format t "You arrive~%")
+                         ;; (format t "You arrive~%")
                          (if (= (length used) (length rates))
                              (recur (+ time min-time)
                                     (+ total delta)
@@ -288,14 +289,14 @@
                                                       (+ total delta)
                                                       other-room
                                                       room-el
-                                                      distance
+                                                      (1+ distance)
                                                       (- travel-el travel)
                                                       (cons room valves)
                                                       (cons other-room used))
                                                most-negative-fixnum))))))
                       ((eq min-time travel-el)
                        (let ((delta (* min-time (rate rates valves))))
-                         (format t "Elephant arrives~%")
+                         ;; (format t "Elephant arrives~%")
                          (if (= (length used) (length rates))
                              (recur (+ time min-time)
                                     (+ total delta)
@@ -317,13 +318,13 @@
                                                       room
                                                       other-room-el
                                                       (- travel travel-el)
-                                                      distance-el
+                                                      (1+ distance-el)
                                                       (cons room-el valves)
                                                       (cons other-room-el used))
                                                most-negative-fixnum))))))
                       (t (progn
                            (format t "anomaly!: ~a~%" (list time total room room-el travel travel-el valves used))
-                           best))))))))
+                           (error "anomaly")))))))))
       (recur 4 0 0 0 nil nil (list 0) (list 0)))))
 
 ;; Wrong 2979
