@@ -48,7 +48,9 @@
     (for room in final-vertices)
     (for idx from 0)
     (setf (aref new-graph idx)
-          (distances-to-others room graph final-vertices))
+          (sort (distances-to-others room graph final-vertices) #'>
+                :key (lambda (cell) (gethash (nth (cdr cell) final-vertices)
+                                             rates))))
     (finally (return new-graph))))
 
 (defun distances-to-others (room graph vertices-of-interest)
@@ -177,15 +179,28 @@
     (apply #'+)))
 
 (defun search-from-with-elephants (graph rates)
-  (let ((best most-negative-fixnum))
+  (let ((best most-negative-fixnum)
+        (all-valves (iter
+                      (for i from 0 below (length rates))
+                      (collecting i))))
     (labels ((recur (time total room room-el travel travel-el valves used)
                ;; (format t "~a~%" (list time total room room-el travel travel-el valves used))
                (cond
-                 ((= time 30) total)
-                 ((= (length valves) (length graph)) (+ total
-                                                        (* (rate rates valves)
-                                                           (- 30 time))))
-                 ;; ((< (+ total (* (rate rates valves) (- 30 time))) best) best)
+                 ((= time 30) (progn
+                                (when (> total best)
+                                  (print total))
+                                (setf best (max best total))
+                                total))
+                 ((= (length valves) (length graph))
+                  (let ((next-result (+ total
+                                        (* (rate rates all-valves)
+                                           (- 30 time)))))
+                    (when (> next-result best)
+                      (print next-result))
+                    (setf best (max best next-result))
+                    next-result))
+                 ((< (+ total (* (rate rates all-valves) (- 30 time))) best)
+                  most-negative-fixnum)
                  (t
                   (let ((min-time (min (or travel most-positive-fixnum)
                                        (or travel-el most-positive-fixnum))))
@@ -328,3 +343,5 @@
       (recur 4 0 0 0 nil nil (list 0) (list 0)))))
 
 ;; Wrong 2979
+;; Wrong 2424
+;; Wrong 2571
