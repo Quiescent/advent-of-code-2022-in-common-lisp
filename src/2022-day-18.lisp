@@ -100,40 +100,28 @@
 
 (defun reachable-area (grid max-x max-y max-z)
   (let ((seen (make-array (list (+ 3 max-x) (+ 3 max-y) (+ 3 max-z))
-                          :initial-element nil))
-        (total 0))
+                          :initial-element nil)))
     (labels ((recur (x y z)
-               (progn
-                 (when (null (aref grid x y z))
-                   (incf total
-                         (iter
-                           (for (dx dy dz) in deltas)
-                           (for xx = (+ x dx))
-                           (for yy = (+ y dy))
-                           (for zz = (+ z dz))
-                           (counting (and (>= xx 0)
-                                          (< xx (+ 3 max-x))
-                                          (>= yy 0)
-                                          (< yy (+ 3 max-y))
-                                          (>= zz 0)
-                                          (< zz (+ 3 max-z))
-                                          (aref grid xx yy zz))))))
-                 (iter
-                   (for (dx dy dz) in deltas)
-                   (for xx = (+ x dx))
-                   (for yy = (+ y dy))
-                   (for zz = (+ z dz))
-                   (when (and (>= xx 0)
-                              (< xx (+ 3 max-x))
-                              (>= yy 0)
-                              (< yy (+ 3 max-y))
-                              (>= zz 0)
-                              (< zz (+ 3 max-z))
-                              (not (aref seen xx yy zz))
-                              (not (aref grid xx yy zz)))
-                     (setf (aref seen xx yy zz) t)
-                     (recur xx yy zz))))))
-      (recur 0 0 0)
-      total)))
+               (iter
+                 (for (dx dy dz) in deltas)
+                 (for xx = (+ x dx))
+                 (for yy = (+ y dy))
+                 (for zz = (+ z dz))
+                 (for in-bounds = (and (>= xx 0)
+                                       (< xx (+ 3 max-x))
+                                       (>= yy 0)
+                                       (< yy (+ 3 max-y))
+                                       (>= zz 0)
+                                       (< zz (+ 3 max-z))))
+                 (cond
+                   ((and in-bounds
+                         (not (aref seen xx yy zz))
+                         (not (aref grid xx yy zz)))
+                    (progn
+                      (setf (aref seen xx yy zz) t)
+                      (summing (recur xx yy zz))))
+                   ((and in-bounds (aref grid xx yy zz)) (summing 1))
+                   (t (summing 0))))))
+      (recur 0 0 0))))
 
 ;; Wrong 2619
