@@ -174,16 +174,24 @@
     (format t "compressed: ~a~%" compressed)
     (search-from-with-elephants compressed rates)))
 
+(defvar rate-cache
+  (make-hash-table))
+
 (defun rate (rates valves)
-  (->> (mapcar (lambda (room) (aref rates room)) valves)
-    (apply #'+)))
+  (or #1=(gethash valves rate-cache)
+      (setf #1#
+            (iter
+              (for i from 0 below (length rates))
+              (when (> (logand (ash 1 i) valves) 0)
+                (summing (aref rates i)))))))
 
 (defun search-from-with-elephants (graph rates)
   (let ((best most-negative-fixnum)
-        (all-valves (iter
-                      (for i from 0 below (length rates))
-                      (collecting i))))
+        (all-valves (1- (expt 2 (length rates))))
+        (rate-cache (make-hash-table)))
+    (format t "all-valves: ~a~%" all-valves)
     (labels ((recur (time total room room-el travel travel-el valves used)
+               (declare (type fixnum time total room room-el))
                ;; (format t "~a~%" (list time total room room-el travel travel-el valves used))
                (cond
                  ((= time 30) (progn
@@ -191,7 +199,7 @@
                                   (print total))
                                 (setf best (max best total))
                                 total))
-                 ((= (length valves) (length graph))
+                 ((= valves all-valves)
                   (let ((next-result (+ total
                                         (* (rate rates all-valves)
                                            (- 30 time)))))
@@ -199,7 +207,8 @@
                       (print next-result))
                     (setf best (max best next-result))
                     next-result))
-                 ((< (+ total (* (rate rates all-valves) (- 30 time))) best)
+                 ((< (+ total (* (rate rates all-valves)
+                                 (- 30 time))) best)
                   most-negative-fixnum)
                  (t
                   (let ((min-time (min (or travel most-positive-fixnum)
@@ -211,8 +220,8 @@
                          ;; (format t "Not enough time~%")
                          (recur  30
                                  (+ total (* (rate rates valves) (- 30 time)))
-                                 nil
-                                 nil
+                                 room
+                                 room-el
                                  nil
                                  nil
                                  nil
@@ -255,7 +264,9 @@
                                     room-el
                                     nil
                                     nil
-                                    (cons room (cons room-el valves))
+                                    (logior (ash 1 room)
+                                            (logior (ash 1 room-el)
+                                                    valves))
                                     used)
                              (iter
                                (for (distance . other-room)
@@ -275,7 +286,9 @@
                                                              other-room-el
                                                              (1+ distance)
                                                              (1+ distance-el)
-                                                             (cons room (cons room-el valves))
+                                                             (logior (ash 1 room)
+                                                                     (logior (ash 1 room-el)
+                                                                             valves))
                                                              (cons other-room
                                                                    (cons other-room-el
                                                                          used)))
@@ -293,7 +306,8 @@
                                     (if (null travel-el)
                                         travel-el
                                         (- travel-el travel))
-                                    (cons room valves)
+                                    (logior (ash 1 room)
+                                            valves)
                                     used)
                              (iter
                                (for (distance . other-room)
@@ -306,7 +320,8 @@
                                                       room-el
                                                       (1+ distance)
                                                       (- travel-el travel)
-                                                      (cons room valves)
+                                                      (logior (ash 1 room)
+                                                              valves)
                                                       (cons other-room used))
                                                most-negative-fixnum))))))
                       ((eq min-time travel-el)
@@ -321,7 +336,8 @@
                                         travel
                                         (- travel travel-el))
                                     nil
-                                    (cons room-el valves)
+                                    (logior (ash 1 room-el)
+                                            valves)
                                     used)
                              (iter
                                (for (distance-el . other-room-el)
@@ -334,14 +350,40 @@
                                                       other-room-el
                                                       (- travel travel-el)
                                                       (1+ distance-el)
-                                                      (cons room-el valves)
+                                                      (logior (ash 1 room-el)
+                                                              valves)
                                                       (cons other-room-el used))
                                                most-negative-fixnum))))))
                       (t (progn
                            (format t "anomaly!: ~a~%" (list time total room room-el travel travel-el valves used))
                            (error "anomaly")))))))))
-      (recur 4 0 0 0 nil nil (list 0) (list 0)))))
+      (recur 4 0 0 0 nil nil 1 (list 0)))))
 
 ;; Wrong 2979
 ;; Wrong 2424
 ;; Wrong 2571
+
+;; Optimisation notes.
+;; Un-optimised part-2: 62.127s
+;;
+;; Use optimize 3, debug 0, safety 0:
+;;  - A few changes: 59.593s
+;; Don't expect too much better.
+;;
+;; Using the profiler...
+;; 
+;; The function RATES was the most expensive part of the solution.  I
+;; turned valves into a bitmask and cached the rates and...
+;;  - 21.019s(!)
+;;
+;; Next round of profiling...
+;; 
+
+#+nil
+(require :sb-sprof)
+
+#+nil
+(sb-sprof:with-profiling (:max-samples 10000
+                          :report :flat
+                          :loop nil)
+  (part-2))
