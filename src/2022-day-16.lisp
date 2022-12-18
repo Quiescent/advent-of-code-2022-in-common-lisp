@@ -178,7 +178,8 @@
   (make-hash-table))
 
 (defun rate (rates valves)
-  (or #1=(gethash valves rate-cache)
+  (declare (optimize (debug 0) (safety 0) (speed 3)))
+  (or #1=(aref rate-cache valves)
       (setf #1#
             (iter
               (for i from 0 below (length rates))
@@ -186,9 +187,11 @@
                 (summing (aref rates i)))))))
 
 (defun search-from-with-elephants (graph rates)
-  (let ((best most-negative-fixnum)
-        (all-valves (1- (expt 2 (length rates))))
-        (rate-cache (make-hash-table)))
+  (declare (optimize (debug 0) (safety 0) (speed 3)))
+  (let* ((best most-negative-fixnum)
+         (all-valves (1- (expt 2 (length rates))))
+         (rate-cache (make-array (list (1+ all-valves))
+                                 :initial-element nil)))
     (format t "all-valves: ~a~%" all-valves)
     (labels ((recur (time total room room-el travel travel-el valves used)
                (declare (type fixnum time total room room-el))
@@ -232,14 +235,14 @@
                          (iter
                            (for (distance . other-room)
                                 in (aref graph room))
-                           (when (member other-room used)
+                           (when (> (logand (ash 1 other-room) used) 0)
                              (next-iteration))
                            (maximizing
                             (or (iter
                                   (for (distance-el . other-room-el)
                                        in (aref graph room-el))
                                   (when (or (eq other-room other-room-el)
-                                            (member other-room-el used))
+                                            (> (logand (ash 1 other-room-el) used) 0))
                                     (next-iteration))
                                   (maximizing (or (recur time
                                                          total
@@ -248,16 +251,16 @@
                                                          (1+ distance)
                                                          (1+ distance-el)
                                                          valves
-                                                         (cons other-room
-                                                               (cons other-room-el
-                                                                     used)))
+                                                         (logior (ash 1 other-room)
+                                                                 (logior (ash 1 other-room-el)
+                                                                         used)))
                                                   most-negative-fixnum)))
                                 most-negative-fixnum)))))
                       ((and (eq min-time travel)
                             (eq min-time travel-el))
                        (let ((delta (* min-time (rate rates valves))))
                          ;; (format t "Both arrive~%")
-                         (if (= (length used) (length rates))
+                         (if (= used all-valves)
                              (recur (+ time min-time)
                                     (+ total delta)
                                     room
@@ -271,14 +274,16 @@
                              (iter
                                (for (distance . other-room)
                                     in (aref graph room))
-                               (when (member other-room used)
+                               (when (> (logand (ash 1 other-room) used) 0)
                                  (next-iteration))
                                (maximizing
                                 (or (iter
                                       (for (distance-el . other-room-el)
                                            in (aref graph room-el))
                                       (when (or (eq other-room other-room-el)
-                                                (member other-room-el used))
+                                                (> (logand (ash 1 other-room-el)
+                                                           used)
+                                                   0))
                                         (next-iteration))
                                       (maximizing (or (recur (+ time min-time)
                                                              (+ total delta)
@@ -289,15 +294,15 @@
                                                              (logior (ash 1 room)
                                                                      (logior (ash 1 room-el)
                                                                              valves))
-                                                             (cons other-room
-                                                                   (cons other-room-el
-                                                                         used)))
+                                                             (logior (ash 1 other-room)
+                                                                     (logior (ash 1  other-room-el)
+                                                                             used)))
                                                       most-negative-fixnum)))
                                     most-negative-fixnum))))))
                       ((eq min-time travel)
                        (let ((delta (* min-time (rate rates valves))))
                          ;; (format t "You arrive~%")
-                         (if (= (length used) (length rates))
+                         (if (= used all-valves)
                              (recur (+ time min-time)
                                     (+ total delta)
                                     room
@@ -312,7 +317,7 @@
                              (iter
                                (for (distance . other-room)
                                     in (aref graph room))
-                               (when (member other-room used)
+                               (when (> (logand (ash 1 other-room) used) 0)
                                  (next-iteration))
                                (maximizing (or (recur (+ time min-time)
                                                       (+ total delta)
@@ -322,12 +327,13 @@
                                                       (- travel-el travel)
                                                       (logior (ash 1 room)
                                                               valves)
-                                                      (cons other-room used))
+                                                      (logior (ash 1 other-room)
+                                                              used))
                                                most-negative-fixnum))))))
                       ((eq min-time travel-el)
                        (let ((delta (* min-time (rate rates valves))))
                          ;; (format t "Elephant arrives~%")
-                         (if (= (length used) (length rates))
+                         (if (= used all-valves)
                              (recur (+ time min-time)
                                     (+ total delta)
                                     room
@@ -342,7 +348,7 @@
                              (iter
                                (for (distance-el . other-room-el)
                                     in (aref graph room-el))
-                               (when (member other-room-el used)
+                               (when (> (logand (ash 1 other-room-el) used) 0)
                                  (next-iteration))
                                (maximizing (or (recur (+ time min-time)
                                                       (+ total delta)
@@ -352,12 +358,13 @@
                                                       (1+ distance-el)
                                                       (logior (ash 1 room-el)
                                                               valves)
-                                                      (cons other-room-el used))
+                                                      (logior (ash 1 other-room-el)
+                                                              used))
                                                most-negative-fixnum))))))
                       (t (progn
                            (format t "anomaly!: ~a~%" (list time total room room-el travel travel-el valves used))
                            (error "anomaly")))))))))
-      (recur 4 0 0 0 nil nil 1 (list 0)))))
+      (recur 4 0 0 0 nil nil 1 1))))
 
 ;; Wrong 2979
 ;; Wrong 2424
@@ -377,7 +384,21 @@
 ;;  - 21.019s(!)
 ;;
 ;; Next round of profiling...
-;; 
+;;
+;; I turned used into a bitmask as well.  The results weren't as good
+;; as I'd hoped.
+;;  - 19.739s
+;;
+;; Next round of profiling...
+;;
+;; I turned the cache of rates into a massive array.  The results were
+;; modest at best.
+;;  - 18.998
+;;
+;; Turned on the optimizer and shaved off 1 more second.
+;;  - 18.191
+;;
+;; Good enough for now.  It was fun! :-)
 
 #+nil
 (require :sb-sprof)
