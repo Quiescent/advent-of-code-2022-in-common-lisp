@@ -177,24 +177,32 @@
 (defvar rate-cache
   (make-hash-table))
 
+(declaim (ftype (function (vector fixnum) fixnum) rate))
 (defun rate (rates valves)
-  (declare (optimize (debug 0) (safety 0) (speed 3)))
-  (or #1=(aref rate-cache valves)
-      (setf #1#
-            (iter
-              (for i from 0 below (length rates))
-              (when (> (logand (ash 1 i) valves) 0)
-                (summing (aref rates i)))))))
+  (declare (optimize (debug 0) (safety 0) (speed 3))
+           (type vector rates)
+           (type fixnum valves))
+  (let ((result #1=(aref rate-cache valves)))
+    (declare (type fixnum result))
+    (or (and (/= result most-negative-fixnum) result)
+        (setf #1#
+              (the fixnum
+                   (iter
+                     (for i from 0 below (length rates))
+                     (when (> (logand (ash 1 i) valves) 0)
+                       (summing (the fixnum (aref rates i))))))))))
 
 (defun search-from-with-elephants (graph rates)
-  (declare (optimize (debug 0) (safety 0) (speed 3)))
+  (declare (optimize (debug 0) (safety 0) (speed 3))
+           (type vector rates))
   (let* ((best most-negative-fixnum)
          (all-valves (1- (expt 2 (length rates))))
          (rate-cache (make-array (list (1+ all-valves))
-                                 :initial-element nil)))
+                                 :initial-element most-negative-fixnum)))
+    (declare (type fixnum all-valves best))
     (format t "all-valves: ~a~%" all-valves)
     (labels ((recur (time total room room-el travel travel-el valves used)
-               (declare (type fixnum time total room room-el))
+               (declare (type fixnum time total room room-el valves used))
                ;; (format t "~a~%" (list time total room room-el travel travel-el valves used))
                (cond
                  ((= time 30) (progn
@@ -203,32 +211,40 @@
                                 (setf best (max best total))
                                 total))
                  ((= valves all-valves)
-                  (let ((next-result (+ total
-                                        (* (rate rates all-valves)
-                                           (- 30 time)))))
+                  (let ((next-result (the fixnum
+                                          (+ total
+                                             (the fixnum
+                                                  (* (rate rates all-valves)
+                                                     (the fixnum (- 30 time))))))))
                     (when (> next-result best)
                       (print next-result))
                     (setf best (max best next-result))
                     next-result))
-                 ((< (+ total (* (rate rates all-valves)
-                                 (- 30 time))) best)
+                 ((< (the fixnum (+ total (the fixnum
+                                               (* (rate rates all-valves)
+                                                  (the fixnum (- 30 time)))))) best)
                   most-negative-fixnum)
                  (t
-                  (let ((min-time (min (or travel most-positive-fixnum)
-                                       (or travel-el most-positive-fixnum))))
+                  (let ((min-time (min (the fixnum
+                                            (or travel most-positive-fixnum))
+                                       (the fixnum
+                                            (or travel-el most-positive-fixnum)))))
                     (cond
                       ((and (not (eq min-time most-positive-fixnum))
                             (>= min-time (- 30 time)))
                        (progn
                          ;; (format t "Not enough time~%")
                          (recur  30
-                                 (+ total (* (rate rates valves) (- 30 time)))
+                                 (the fixnum
+                                      (+ total (the fixnum
+                                                    (* (rate rates valves)
+                                                       (the fixnum (- 30 time))))))
                                  room
                                  room-el
                                  nil
                                  nil
-                                 nil
-                                 nil)))
+                                 valves
+                                 used)))
                       ((= min-time most-positive-fixnum)
                        (progn
                          ;; (format t "No one travelling~%")
@@ -258,7 +274,7 @@
                                 most-negative-fixnum)))))
                       ((and (eq min-time travel)
                             (eq min-time travel-el))
-                       (let ((delta (* min-time (rate rates valves))))
+                       (let ((delta (the fixnum (* min-time (rate rates valves)))))
                          ;; (format t "Both arrive~%")
                          (if (= used all-valves)
                              (recur (+ time min-time)
@@ -267,9 +283,10 @@
                                     room-el
                                     nil
                                     nil
-                                    (logior (ash 1 room)
-                                            (logior (ash 1 room-el)
-                                                    valves))
+                                    (the fixnum (logior (the fixnum (ash 1 room))
+                                                        (logior (the fixnum
+                                                                     (ash 1 room-el))
+                                                                valves)))
                                     used)
                              (iter
                                (for (distance . other-room)
@@ -300,7 +317,7 @@
                                                       most-negative-fixnum)))
                                     most-negative-fixnum))))))
                       ((eq min-time travel)
-                       (let ((delta (* min-time (rate rates valves))))
+                       (let ((delta (the fixnum (* min-time (rate rates valves)))))
                          ;; (format t "You arrive~%")
                          (if (= used all-valves)
                              (recur (+ time min-time)
@@ -310,8 +327,8 @@
                                     nil
                                     (if (null travel-el)
                                         travel-el
-                                        (- travel-el travel))
-                                    (logior (ash 1 room)
+                                        (the fixnum (- travel-el travel)))
+                                    (logior (the fixnum (ash 1 room))
                                             valves)
                                     used)
                              (iter
@@ -331,7 +348,7 @@
                                                               used))
                                                most-negative-fixnum))))))
                       ((eq min-time travel-el)
-                       (let ((delta (* min-time (rate rates valves))))
+                       (let ((delta (the fixnum (* min-time (rate rates valves)))))
                          ;; (format t "Elephant arrives~%")
                          (if (= used all-valves)
                              (recur (+ time min-time)
@@ -340,9 +357,9 @@
                                     room-el
                                     (if (null travel)
                                         travel
-                                        (- travel travel-el))
+                                        (the fixnum (- travel travel-el)))
                                     nil
-                                    (logior (ash 1 room-el)
+                                    (logior (the fixnum (ash 1 room-el))
                                             valves)
                                     used)
                              (iter
@@ -399,6 +416,14 @@
 ;;  - 18.191
 ;;
 ;; Good enough for now.  It was fun! :-)
+;;
+;; I came back for more! XD
+;;
+;; I followed the compiler to get more unboxed arithmetic.
+;;  - 16.537
+;;
+;; Can't say the code looks pretty right now.  Perhaps I should use
+;; macros to cure that problem...
 
 #+nil
 (require :sb-sprof)
