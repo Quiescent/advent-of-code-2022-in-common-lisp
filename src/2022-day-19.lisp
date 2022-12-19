@@ -16,12 +16,13 @@
             geode-obsidian-cost)
            in input)
       (for i from 0)
-      (for best = (best-score ore-ore-cost
-                              clay-ore-cost
-                              obsidian-ore-cost
-                              obsidian-clay-cost
-                              geode-ore-cost
-                              geode-obsidian-cost))
+      (for best = (best-score-2 24
+                                ore-ore-cost
+                                clay-ore-cost
+                                obsidian-ore-cost
+                                obsidian-clay-cost
+                                geode-ore-cost
+                                geode-obsidian-cost))
       (format t "TICK ~a: ~a~%" i best)
       (summing (* factory-id best)))))
 
@@ -32,181 +33,6 @@
 ;; 1 clay
 ;; 2 obsidian
 ;; 3 geode
-
-(defvar best-found most-negative-fixnum)
-
-(defun best-score (ore-ore-cost
-                   clay-ore-cost
-                   obsidian-ore-cost
-                   obsidian-clay-cost
-                   geode-ore-cost
-                   geode-obsidian-cost)
-  (labels ((recur (minute
-                   ores
-                   clays
-                   obsidians
-                   geodes
-                   ore
-                   clay
-                   obsidian
-                   geode)
-             (declare (type fixnum
-                            minute
-                            ores
-                            clays
-                            obsidians
-                            geodes
-                            ore
-                            clay
-                            obsidian
-                            geode))
-             (if (= minute 24)
-                 (+ geodes geode)
-                 (max
-                  (if (and (> ores 0)
-                           (> obsidians 0))
-                      (let* ((time-to-build (max 1
-                                                 (1+ (ceiling (- geode-ore-cost ore)
-                                                              ores))
-                                                 (1+ (ceiling (- geode-obsidian-cost
-                                                                 obsidian)
-                                                              obsidians))))
-                             (next-minute (+ minute time-to-build)))
-                        (if (<= next-minute 24)
-                            (let (;; New bots
-                                  (next-ores ores)
-                                  (next-clays clays)
-                                  (next-obsidians obsidians)
-                                  (next-geodes (1+ geodes))
-                                  ;; New materials
-                                  (next-ore (- (+ ore (* time-to-build ores))
-                                               geode-ore-cost))
-                                  (next-clay (+ clay (* time-to-build clays)))
-                                  (next-obsidian (- (+ obsidian (* time-to-build
-                                                                   obsidians))
-                                                    geode-obsidian-cost))
-                                  (next-geode (+ geode (* time-to-build geodes))))
-                              (recur next-minute
-                                     next-ores
-                                     next-clays
-                                     next-obsidians
-                                     next-geodes
-                                     next-ore
-                                     next-clay
-                                     next-obsidian
-                                     next-geode))
-                            most-negative-fixnum))
-                      most-negative-fixnum)
-                  (if (and (> ores 0)
-                           (> clays 0))
-                      (let* ((time-to-build (max 1
-                                                 (1+ (ceiling (- obsidian-ore-cost ore)
-                                                              ores))
-                                                 (1+ (ceiling (- obsidian-clay-cost clay)
-                                                              clays))))
-                             (next-minute (+ minute time-to-build)))
-                        (if (<= next-minute 24)
-                            (let (;; New bots
-                                  (next-ores ores)
-                                  (next-clays clays)
-                                  (next-obsidians (1+ obsidians))
-                                  (next-geodes geodes)
-                                  ;; New materials
-                                  (next-ore (- (+ ore (* time-to-build ores))
-                                               obsidian-ore-cost))
-                                  (next-clay (- (+ clay (* time-to-build clays))
-                                                obsidian-clay-cost))
-                                  (next-obsidian (+ obsidian (* time-to-build
-                                                                obsidians)))
-                                  (next-geode (+ geode (* time-to-build geodes))))
-                              (recur next-minute
-                                     next-ores
-                                     next-clays
-                                     next-obsidians
-                                     next-geodes
-                                     next-ore
-                                     next-clay
-                                     next-obsidian
-                                     next-geode))
-                            most-negative-fixnum))
-                      most-negative-fixnum)
-                  (let* ((time-to-build (max 1
-                                             (1+ (ceiling (- clay-ore-cost ore)
-                                                          ores))))
-                         (next-minute (+ minute time-to-build)))
-                    (if (<= next-minute 24)
-                        (let (;; New bots
-                              (next-ores ores)
-                              (next-clays (1+ clays))
-                              (next-obsidians obsidians)
-                              (next-geodes geodes)
-                              ;; New materials
-                              (next-ore (- (+ ore (* time-to-build ores))
-                                           clay-ore-cost))
-                              (next-clay (+ clay (* time-to-build clays)))
-                              (next-obsidian (+ obsidian (* time-to-build
-                                                            obsidians)))
-                              (next-geode (+ geode (* time-to-build geodes))))
-                          (recur next-minute
-                                 next-ores
-                                 next-clays
-                                 next-obsidians
-                                 next-geodes
-                                 next-ore
-                                 next-clay
-                                 next-obsidian
-                                 next-geode))
-                        most-negative-fixnum))
-                  (let* ((time-to-build (max 1
-                                             (1+ (ceiling (- ore-ore-cost ore)
-                                                          ores))))
-                         (next-minute (+ minute time-to-build)))
-                    (if (<= next-minute 24)
-                        (let (;; New bots
-                              (next-ores (1+ ores))
-                              (next-clays clays)
-                              (next-obsidians obsidians)
-                              (next-geodes geodes)
-                              ;; New materials
-                              (next-ore (- (+ ore (* time-to-build ores))
-                                           ore-ore-cost))
-                              (next-clay (+ clay (* time-to-build clays)))
-                              (next-obsidian (+ obsidian (* time-to-build
-                                                            obsidians)))
-                              (next-geode (+ geode (* time-to-build geodes))))
-                          (recur next-minute
-                                 next-ores
-                                 next-clays
-                                 next-obsidians
-                                 next-geodes
-                                 next-ore
-                                 next-clay
-                                 next-obsidian
-                                 next-geode))
-                        most-negative-fixnum))
-                  ;; Do nothing...
-                  (let* ((time-to-build (- 24 minute))
-                         (next-minute 24)
-                         (next-ores ores)
-                         (next-clays clays)
-                         (next-obsidians obsidians)
-                         (next-geodes geodes)
-                         ;; New materials
-                         (next-ore (+ ore (* time-to-build ores)))
-                         (next-clay (+ clay (* time-to-build clays)))
-                         (next-obsidian (+ obsidian (* time-to-build
-                                                       obsidians)))
-                         (next-geode (+ geode (* time-to-build geodes))))
-                    (recur next-minute
-                           next-ores
-                           next-clays
-                           next-obsidians
-                           next-geodes
-                           next-ore
-                           next-clay
-                           next-obsidian
-                           next-geode))))))
-    (recur 1 1 0 0 0 0 0 0 0)))
 
 (defun file-lines (f)
   (do ((line (read-line f nil nil) (read-line f nil nil))
@@ -243,18 +69,19 @@
             geode-obsidian-cost)
            in (subseq input 0 (min 3 (length input))))
       (for i from 0)
-      (for best = (let ((best-found most-negative-fixnum))
-                    (best-score-2 ore-ore-cost
-                                  clay-ore-cost
-                                  obsidian-ore-cost
-                                  obsidian-clay-cost
-                                  geode-ore-cost
-                                  geode-obsidian-cost)))
+      (for best = (best-score-2 32
+                                ore-ore-cost
+                                clay-ore-cost
+                                obsidian-ore-cost
+                                obsidian-clay-cost
+                                geode-ore-cost
+                                geode-obsidian-cost))
       (format t "TICK ~a: ~a~%" i best)
       (collecting best into result)
       (finally (return (apply #'* result))))))
 
-(defun best-score-2 (ore-ore-cost
+(defun best-score-2 (max-minute
+                     ore-ore-cost
                      clay-ore-cost
                      obsidian-ore-cost
                      obsidian-clay-cost
@@ -263,7 +90,8 @@
   (let ((max-ore-cost (max ore-ore-cost
                            clay-ore-cost
                            obsidian-ore-cost
-                           geode-ore-cost)))
+                           geode-ore-cost))
+        (best-found most-negative-fixnum))
    (labels ((recur (minute
                     ores
                     clays
@@ -283,7 +111,7 @@
                              clay
                              obsidian
                              geode))
-              (if (= minute 32)
+              (if (= minute max-minute)
                   (progn
                     (when (> (+ geodes geode) best-found)
                       (setf best-found (+ geodes geode)))
@@ -298,7 +126,7 @@
                                                                   obsidian)
                                                                obsidians))))
                               (next-minute (+ minute time-to-build)))
-                         (if (<= next-minute 32)
+                         (if (<= next-minute max-minute)
                              (let (;; New bots
                                    (next-ores ores)
                                    (next-clays clays)
@@ -332,7 +160,7 @@
                                                   (1+ (ceiling (- obsidian-clay-cost clay)
                                                                clays))))
                               (next-minute (+ minute time-to-build)))
-                         (if (<= next-minute 32)
+                         (if (<= next-minute max-minute)
                              (let (;; New bots
                                    (next-ores ores)
                                    (next-clays clays)
@@ -362,7 +190,7 @@
                                                   (1+ (ceiling (- clay-ore-cost ore)
                                                                ores))))
                               (next-minute (+ minute time-to-build)))
-                         (if (<= next-minute 32)
+                         (if (<= next-minute max-minute)
                              (let (;; New bots
                                    (next-ores ores)
                                    (next-clays (1+ clays))
@@ -391,7 +219,7 @@
                                                   (1+ (ceiling (- ore-ore-cost ore)
                                                                ores))))
                               (next-minute (+ minute time-to-build)))
-                         (if (<= next-minute 32)
+                         (if (<= next-minute max-minute)
                              (let (;; New bots
                                    (next-ores (1+ ores))
                                    (next-clays clays)
@@ -416,8 +244,8 @@
                              most-negative-fixnum))
                        most-negative-fixnum)
                    ;; Do nothing...
-                   (let* ((time-to-build (- 32 minute))
-                          (next-minute 32)
+                   (let* ((time-to-build (- max-minute minute))
+                          (next-minute max-minute)
                           (next-ores ores)
                           (next-clays clays)
                           (next-obsidians obsidians)
