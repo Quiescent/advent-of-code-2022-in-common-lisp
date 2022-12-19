@@ -302,7 +302,13 @@
                      obsidian-clay-cost
                      geode-ore-cost
                      geode-obsidian-cost)
-  (let ((seen (make-hash-table :test #'equal)))
+  (let* ((seen (make-array (list 32 32 32 32))))
+    (dotimes (i 32)
+      (dotimes (j 32)
+        (dotimes (k 32)
+          (dotimes (l 32)
+            (setf (aref seen i j k l)
+                  (make-hash-table))))))
     (labels ((recur (minute
                      ores
                      clays
@@ -340,16 +346,11 @@
                  ;;                     clay
                  ;;                     obsidian
                  ;;                     geode))
-                 (if (not #1=(gethash (list minute
-                                            ores
-                                            clays
-                                            obsidians
-                                            geodes
-                                            ore
-                                            clay
-                                            obsidian
-                                            geode)
-                                      seen))
+                 (if (not #1=(gethash (+ ore
+                                         (* 1000 clay)
+                                         (* 1000000 obsidian)
+                                         (* 1000000000 geode))
+                                      (aref seen ores clays obsidians geodes)))
                      (setf #1# (if (= minute 32)
                                    (progn
                                      (when (> (+ geodes geode) best-found)
