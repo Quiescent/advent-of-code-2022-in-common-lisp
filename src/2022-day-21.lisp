@@ -52,10 +52,12 @@
     (for i from 0)
     ;; (setf (gethash 'humn graph) i)
     (for maths = (to-maths-symb monkey-1 graph))
-    (format t "Has human: ~a~%" (has-humn maths))
-    (format t "Has human l: ~a~%" (has-humn (cadr maths)))
-    (format t "Has human r: ~a~%" (has-humn (caddr maths)))
-    (format t "~A" maths)
+    ;; (format t "Has human: ~a~%" (has-humn maths))
+    ;; (format t "Has human l: ~a~%" (has-humn (cadr maths)))
+    ;; (format t "Has human r: ~a~%" (has-humn (caddr maths)))
+    (format t "(simplify maths): ~a~%" (simplify maths))
+    ;; (format t "~A~%" maths)
+    (format t "~a~%" (solve (simplify maths) monkey-2-result))
     (finish)
     (for monkey-1-result = (compute monkey-1 graph))
     (format t "monke-y-1-result: ~a~%" monkey-1-result)
@@ -64,6 +66,30 @@
     (when (= monkey-1-result monkey-2-result)
       (return i))
     ))
+
+(defun solve (maths other-monkey)
+  (progn
+    (format t "other-monkey: ~a~%" other-monkey)
+    (format t "maths: ~a~%" maths)
+    (if (not (listp maths))
+       (progn
+         (format t "maths: ~a~%" maths)
+         (format t "other-monkey: ~a~%" other-monkey)
+         other-monkey)
+       (bind (((op l r) maths))
+         (cond
+           ((has-humn l)
+            (case op
+              (/ (solve l (* other-monkey r)))
+              (+ (solve l (- other-monkey r)))
+              (- (solve l (+ other-monkey r)))
+              (* (solve l (/ other-monkey r)))))
+           (t ;; (has-humn r)
+            (case op
+              (/ (solve r (* (/ 1 other-monkey) l)))
+              (+ (solve r (- other-monkey l)))
+              (- (solve r (- (- other-monkey l))))
+              (* (solve r (/ other-monkey l))))))))))
 
 ;; (defun symbolically (node graph)
 ;;   (let* ((current (gethash node graph))
@@ -76,6 +102,15 @@
 ;;                (r-result (symbolically r-arg graph)))
 ;;            (if (member 'humn l-result)
 ;;                ()))))))
+
+(defun simplify (maths)
+  (if (not (listp maths))
+      maths
+      (bind (((op l r) maths))
+        (cond
+          ((has-humn l) (list op (simplify l) (eval r)))
+          ((has-humn r) (list op (eval l) (simplify r)))
+          (t (funcall op l r))))))
 
 (defun has-humn (xs)
   (if (listp xs)
