@@ -4,9 +4,145 @@
 (in-package 2022-day-22)
 
 (defun part-1 ()
-  (let ((input (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-22.in"))
-                 (streams-lines f))))
-    input))
+  (bind ((input (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-22.in"))
+                  (streams-lines f)))
+         ((map-lines . instructions) (split-lines input))
+         ((max-x max-y grid) (grid-and-bounds map-lines))
+         ((start-x . start-y) (starting-coord grid max-x)))
+    (format t "(list start-x start-y): ~a~%" (list start-x start-y))
+    (follow-instructions grid start-x start-y max-x max-y instructions)))
+
+(defun starting-coord (grid max-x)
+  (iter
+    (for x from 1 to max-x)
+    (with y = 1)
+    (when (eq (gethash (cons x y) grid) 'open)
+     (finding (cons x y) minimizing x))))
+
+(defun follow-instructions (grid start-x start-y max-x max-y instructions)
+  (iter
+    (with i = 0)
+    (with position = (complex start-x start-y))
+    (with direction = #c(1 0))
+    (while (< i (length instructions)))
+    (format t "i: ~a~%" i)
+    (match (subseq instructions i)
+      ((ppcre "(\\d+)(L|R)"
+              (read amount)
+              (read turn))
+       (format t "(list amount turn): ~a~%" (list amount turn))
+       (incf i (length (format nil "~a~a" amount turn)))
+       (iter
+         (for i from 0 below amount)
+         (for new-position = (+ position direction))
+         (for square = (gethash (cons (realpart new-position)
+                                      (imagpart new-position))
+                                grid))
+         ;; (format t "square: ~a~%" square)
+         (case square
+           (wall (finish))
+           (open (setf position new-position)))
+         (when (null square)
+           (iter
+             (with back-pos = (- position direction))
+             (for square = (gethash (cons (realpart back-pos)
+                                          (imagpart back-pos))
+                                    grid))
+             (for p-square previous square)
+             (for current-back-pos = back-pos)
+             (for p-back-pos previous current-back-pos)
+             (while (not (null square)))
+             (decf back-pos direction)
+             (finally
+              (when (not (eq 'wall p-square))
+                ;; (format t "found p-back-pos: ~a~%" p-back-pos)
+                (setf position p-back-pos)))))
+         ;; (format t "position: ~a~%" position)
+         )
+       (case turn
+         (R (setf direction (* direction #c(0 1))))
+         (L (setf direction (* direction #c(0 -1))))))
+      ((ppcre "(\\d+)"
+              (read amount))
+       (format t "(list amount turn): ~a~%" (list amount))
+       (incf i (length (format nil "~a" amount)))
+       (iter
+         (for i from 0 below amount)
+         (for new-position = (+ position direction))
+         (for square = (gethash (cons (realpart new-position)
+                                      (imagpart new-position))
+                                grid))
+         ;; (format t "square: ~a~%" square)
+         (case square
+           (wall (finish))
+           (open (setf position new-position)))
+         (when (null square)
+           (iter
+             (with back-pos = (- position direction))
+             (for square = (gethash (cons (realpart back-pos)
+                                          (imagpart back-pos))
+                                    grid))
+             (for p-square previous square)
+             (for current-back-pos = back-pos)
+             (for p-back-pos previous current-back-pos)
+             (while (not (null square)))
+             (decf back-pos direction)
+             (finally
+              (when (not (eq 'wall p-square))
+                ;; (format t "found p-back-pos: ~a~%" p-back-pos)
+                (setf position p-back-pos)))))
+         ;; (format t "position: ~a~%" position)
+         )))
+    (format t "(list position direction): ~a~%" (list position direction))
+    (finally
+     (return
+       (progn
+
+        (+ (* 1000 (imagpart position))
+           (* 4 (realpart position))
+           (or (cond
+                   ((equal direction #c(1 0)) 0)
+                   ((equal direction #c(0 1)) 1)
+                   ((equal direction #c(-1 0)) 2)
+                   ((equal direction #c(0 -1)) 3)) 0)))))))
+
+;; Wrong: 144240
+;; Wrong: 144243
+
+(defun split-lines (lines)
+  (iter
+    (with in-map = t)
+    (with instructions = nil)
+    (for line in lines)
+    (when (equal line "")
+      (setf in-map nil))
+    (if in-map
+        (collecting line into map-lines)
+        (when (not (equal line ""))
+          (setf instructions line)))
+    (finally
+     (return (cons map-lines instructions)))))
+
+(defun grid-and-bounds (lines)
+  (iter
+    (with grid = (make-hash-table :test #'equal))
+    (for line in lines)
+    (for y from 1)
+    (iter
+      (for x from 1)
+      (while (< (1- x) (length line)))
+      (for square = (aref line (1- x)))
+      (for is-wall = (eq square #\#))
+      (for is-open = (eq square #\.))
+      (when is-wall
+        (setf (gethash (cons x y) grid) 'wall))
+      (when is-open
+        (setf (gethash (cons x y) grid) 'open)))
+    (finally
+     (return
+       (list (length (car lines))
+             (length lines)
+             grid)))))
 
 (defun streams-lines (f)
   (do ((line (read-line f nil nil) (read-line f nil nil))
