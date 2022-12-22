@@ -1,6 +1,7 @@
 (defpackage 2022-day-21
   (:use :cl :iterate :cl-ppcre :metabang-bind :trivia :trivia.ppcre)
-  (:shadowing-import-from :arrow-macros :->>))
+  (:shadowing-import-from :arrow-macros :->>)
+  (:shadowing-import-from :arrow-macros :->))
 (in-package 2022-day-21)
 
 (defun part-1 ()
@@ -39,69 +40,32 @@
 
 ;; Monkey 2: 2407903937671
 
-#+nil
-3.09953269128e12
-
 (defun part-2 ()
-  (iter
-    (with graph = (get-fresh-graph))
-    (with (operation monkey-1 monkey-2) = (gethash 'root graph))
-    (with monkey-2-result = (compute monkey-2 graph))
-    ;; (format t "monkey-2-result: ~a~%" monkey-2-result)
-    ;; (finish)
-    (for i from 0)
-    ;; (setf (gethash 'humn graph) i)
-    (for maths = (to-maths-symb monkey-1 graph))
-    ;; (format t "Has human: ~a~%" (has-humn maths))
-    ;; (format t "Has human l: ~a~%" (has-humn (cadr maths)))
-    ;; (format t "Has human r: ~a~%" (has-humn (caddr maths)))
-    (format t "(simplify maths): ~a~%" (simplify maths))
-    ;; (format t "~A~%" maths)
-    (format t "~a~%" (solve (simplify maths) monkey-2-result))
-    (finish)
-    (for monkey-1-result = (compute monkey-1 graph))
-    (format t "monke-y-1-result: ~a~%" monkey-1-result)
-    (finish)
-    ;; (format t "(list monkey-1-result monkey-2-result): ~a~%" (list monkey-1-result monkey-2-result))
-    (when (= monkey-1-result monkey-2-result)
-      (return i))
-    ))
+  (bind ((graph (get-fresh-graph))
+         ((operation monkey-1 monkey-2) (gethash 'root graph))
+         (monkey-2-result (compute monkey-2 graph)))
+    (declare (ignore operation))
+    (-> (to-maths-symb monkey-1 graph)
+      simplify
+      (solve monkey-2-result))))
 
 (defun solve (maths other-monkey)
-  (progn
-    (format t "other-monkey: ~a~%" other-monkey)
-    (format t "maths: ~a~%" maths)
-    (if (not (listp maths))
-       (progn
-         (format t "maths: ~a~%" maths)
-         (format t "other-monkey: ~a~%" other-monkey)
-         other-monkey)
-       (bind (((op l r) maths))
-         (cond
-           ((has-humn l)
-            (case op
-              (/ (solve l (* other-monkey r)))
-              (+ (solve l (- other-monkey r)))
-              (- (solve l (+ other-monkey r)))
-              (* (solve l (/ other-monkey r)))))
-           (t ;; (has-humn r)
-            (case op
-              (/ (solve r (* (/ 1 other-monkey) l)))
-              (+ (solve r (- other-monkey l)))
-              (- (solve r (- (- other-monkey l))))
-              (* (solve r (/ other-monkey l))))))))))
-
-;; (defun symbolically (node graph)
-;;   (let* ((current (gethash node graph))
-;;          (l-arg (cadr current))
-;;          (r-arg (caddr current)))
-;;     (cond
-;;       ((eq node 'humn) 'humn)
-;;       ((numberp current) current)
-;;       (t (let ((l-result (symbolically l-arg graph))
-;;                (r-result (symbolically r-arg graph)))
-;;            (if (member 'humn l-result)
-;;                ()))))))
+  (if (not (listp maths))
+      other-monkey
+      (bind (((op l r) maths))
+        (cond
+          ((has-humn l)
+           (case op
+             (/ (solve l (* other-monkey r)))
+             (+ (solve l (- other-monkey r)))
+             (- (solve l (+ other-monkey r)))
+             (* (solve l (/ other-monkey r)))))
+          (t ;; (has-humn r)
+           (case op
+             (/ (solve r (* (/ 1 other-monkey) l)))
+             (+ (solve r (- other-monkey l)))
+             (- (solve r (- (- other-monkey l))))
+             (* (solve r (/ other-monkey l)))))))))
 
 (defun simplify (maths)
   (if (not (listp maths))
