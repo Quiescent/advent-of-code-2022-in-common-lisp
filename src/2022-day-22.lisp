@@ -10,7 +10,7 @@
          ((max-x max-y grid) (grid-and-bounds map-lines))
          ((start-x . start-y) (starting-coord grid max-x)))
     (format t "(list start-x start-y): ~a~%" (list start-x start-y))
-    (follow-instructions grid start-x start-y max-x max-y instructions)))
+    (follow-instructions-1 grid start-x start-y max-x max-y instructions)))
 
 (defun starting-coord (grid max-x)
   (iter
@@ -19,7 +19,7 @@
     (when (eq (gethash (cons x y) grid) 'open)
      (finding (cons x y) minimizing x))))
 
-(defun follow-instructions (grid start-x start-y max-x max-y instructions)
+(defun follow-instructions-1 (grid start-x start-y max-x max-y instructions)
   (iter
     (with i = 0)
     (with position = (complex start-x start-y))
