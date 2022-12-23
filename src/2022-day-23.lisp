@@ -18,19 +18,12 @@
       (bind ((new-grid (make-hash-table :test #'equal))
              (new-direction (next-direction direction-bias))
              (proposed-moves (propose-moves grid direction-bias)))
-        ;; (format t "proposed-moves: ~a~%" proposed-moves)
-        (format t "moves-left: ~a~%" moves-left)
         (let ((moved-any (place-on-grid new-grid proposed-moves)))
           (if (not moved-any)
-              (progn
-                (print "HERE")
-                moves-left)
-              (progn
-                ;; (print-grid new-grid)
-                ;; (format t "~%")
-                (make-moves (1- moves-left)
-                            new-direction
-                            new-grid)))))))
+              moves-left
+              (make-moves (1- moves-left)
+                          new-direction
+                          new-grid))))))
 
 (defun print-grid (grid)
   (bind (((min-x min-y max-x max-y) (grid-bounds grid)))
@@ -48,9 +41,7 @@
          (any-moved nil))
     (iter
       (for (start . dest) in proposals)
-      (incf (gethash dest taken-counts 0))
-      ;; (format t "(list dest (gethash dest taken-counts)): ~a~%" (list dest (gethash dest taken-counts)))
-      )
+      (incf (gethash dest taken-counts 0)))
     (iter
       (for (start . dest) in proposals)
       (if (= (gethash dest taken-counts) 1)
@@ -154,7 +145,6 @@
 
 (defun smallest-rectangle-blanks (grid)
   (bind (((min-x min-y max-x max-y) (grid-bounds grid)))
-    ;; (format t "(list min-x min-y max-x max-y): ~a~%" (list min-x min-y max-x max-y))
     (iter
       (for x from min-x to max-x)
       (summing
