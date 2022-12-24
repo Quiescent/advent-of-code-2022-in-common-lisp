@@ -25,36 +25,32 @@
          (best           most-positive-fixnum))
     (setf (gethash 0 blizzard-cache) blizzards)
     (labels ((recur (pos time)
-               (progn
-                 ;; (format t "(list pos time): ~a~%" (list pos time))
-                 (or #1=(gethash (cons pos time) cache)
-                     (setf #1#
-                           (cond
-                             ((>= time best) best)
-                             ((>= (distance end pos)
-                                  (- best time))
-                              best)
-                             ((= pos end) (progn
-                                            (format t "time: ~a~%" time)
-                                            (setf best time)))
-                             (t (bind ((current-blizzards (gethash time
-                                                                   blizzard-cache))
-                                       (new-blizzards
-                                        (or #2=(gethash (1+ time) blizzard-cache)
-                                            (setf #2# (tick-blizzards x-dim
-                                                                      y-dim
-                                                                      current-blizzards))))
-                                       (new-positions (find-spots x-dim
-                                                                  y-dim
-                                                                  start
-                                                                  end
-                                                                  pos
-                                                                  new-blizzards)))
-                                  (or (iter
-                                        (for position in new-positions)
-                                        (when position
-                                          (minimizing (recur position (1+ time)))))
-                                      best)))))))))
+               (or #1=(gethash (cons pos time) cache)
+                   (setf #1#
+                         (cond
+                           ((>= time best) best)
+                           ((>= (distance end pos)
+                                (- best time))
+                            best)
+                           ((= pos end) (setf best time))
+                           (t (bind ((current-blizzards (gethash time
+                                                                 blizzard-cache))
+                                     (new-blizzards
+                                      (or #2=(gethash (1+ time) blizzard-cache)
+                                          (setf #2# (tick-blizzards x-dim
+                                                                    y-dim
+                                                                    current-blizzards))))
+                                     (new-positions (find-spots x-dim
+                                                                y-dim
+                                                                start
+                                                                end
+                                                                pos
+                                                                new-blizzards)))
+                                (or (iter
+                                      (for position in new-positions)
+                                      (when position
+                                        (minimizing (recur position (1+ time)))))
+                                    best))))))))
       (recur start 0))))
 
 (defun find-spots (x-dim y-dim start end position blizzards)
@@ -125,12 +121,9 @@
   (iter
     (with next-blizzards = (make-hash-table))
     (for (position directions) in-hashtable blizzards)
-    ;; (format t "(list position directions): ~a~%" (list position directions))
     (iter
       (for direction in directions)
       (for new-position = (+ position direction))
-      ;; (format t "direction: ~a~%" direction)
-      ;; (format t "position: ~a~%" position)
       (for final-position =
            (cond
              ;; Left
@@ -153,7 +146,6 @@
                                               (complex (realpart new-position)
                                                        (1- y-dim))
                                               new-position))))
-      ;; (format t "final-position: ~a~%" final-position)
       (push direction (gethash final-position next-blizzards)))
     (finally (return next-blizzards))))
 
@@ -179,73 +171,65 @@
          (best           most-positive-fixnum))
     (setf (gethash 0 blizzard-cache) blizzards)
     (labels ((recur-there (pos time cum-time)
-               (progn
-                 ;; (format t "(list pos time): ~a~%" (list pos time))
-                 (or #1=(gethash (cons pos time) cache)
-                     (setf #1#
-                           (cond
-                             ((>= time best) best)
-                             ((>= (distance end pos)
-                                  (- best time))
-                              best)
-                             ((= pos end) (progn
-                                            (format t "time: ~a~%" time)
-                                            (setf best time)))
-                             (t (bind ((current-blizzards (gethash cum-time
-                                                                   blizzard-cache))
-                                       (new-blizzards
-                                        (or #2=(gethash (1+ cum-time)
-                                                        blizzard-cache)
-                                            (setf #2# (tick-blizzards x-dim
-                                                                      y-dim
-                                                                      current-blizzards))))
-                                       (new-positions (find-spots x-dim
-                                                                  y-dim
-                                                                  start
-                                                                  end
-                                                                  pos
-                                                                  new-blizzards)))
-                                  (or (iter
-                                        (for position in new-positions)
-                                        (when position
-                                          (minimizing (recur-there position
-                                                                   (1+ time)
-                                                                   (1+ cum-time)))))
-                                      best))))))))
+               (or #1=(gethash (cons pos time) cache)
+                   (setf #1#
+                         (cond
+                           ((>= time best) best)
+                           ((>= (distance end pos)
+                                (- best time))
+                            best)
+                           ((= pos end) (setf best time))
+                           (t (bind ((current-blizzards (gethash cum-time
+                                                                 blizzard-cache))
+                                     (new-blizzards
+                                      (or #2=(gethash (1+ cum-time)
+                                                      blizzard-cache)
+                                          (setf #2# (tick-blizzards x-dim
+                                                                    y-dim
+                                                                    current-blizzards))))
+                                     (new-positions (find-spots x-dim
+                                                                y-dim
+                                                                start
+                                                                end
+                                                                pos
+                                                                new-blizzards)))
+                                (or (iter
+                                      (for position in new-positions)
+                                      (when position
+                                        (minimizing (recur-there position
+                                                                 (1+ time)
+                                                                 (1+ cum-time)))))
+                                    best)))))))
              (recur-back (pos time cum-time)
-               (progn
-                 ;; (format t "(list pos time): ~a~%" (list pos time))
-                 (or #3=(gethash (cons pos time) cache)
-                     (setf #3#
-                           (cond
-                             ((>= time best) best)
-                             ((>= (distance start pos)
-                                  (- best time))
-                              best)
-                             ((= pos start) (progn
-                                              (format t "time: ~a~%" time)
-                                              (setf best time)))
-                             (t (bind ((current-blizzards (gethash cum-time
-                                                                   blizzard-cache))
-                                       (new-blizzards
-                                        (or #4=(gethash (1+ cum-time)
-                                                        blizzard-cache)
-                                            (setf #4# (tick-blizzards x-dim
-                                                                      y-dim
-                                                                      current-blizzards))))
-                                       (new-positions (find-spots-back x-dim
-                                                                       y-dim
-                                                                       start
-                                                                       end
-                                                                       pos
-                                                                       new-blizzards)))
-                                  (or (iter
-                                        (for position in new-positions)
-                                        (when position
-                                          (minimizing (recur-back position
-                                                                  (1+ time)
-                                                                  (1+ cum-time)))))
-                                      best)))))))))
+               (or #3=(gethash (cons pos time) cache)
+                   (setf #3#
+                         (cond
+                           ((>= time best) best)
+                           ((>= (distance start pos)
+                                (- best time))
+                            best)
+                           ((= pos start) (setf best time))
+                           (t (bind ((current-blizzards (gethash cum-time
+                                                                 blizzard-cache))
+                                     (new-blizzards
+                                      (or #4=(gethash (1+ cum-time)
+                                                      blizzard-cache)
+                                          (setf #4# (tick-blizzards x-dim
+                                                                    y-dim
+                                                                    current-blizzards))))
+                                     (new-positions (find-spots-back x-dim
+                                                                     y-dim
+                                                                     start
+                                                                     end
+                                                                     pos
+                                                                     new-blizzards)))
+                                (or (iter
+                                      (for position in new-positions)
+                                      (when position
+                                        (minimizing (recur-back position
+                                                                (1+ time)
+                                                                (1+ cum-time)))))
+                                    best))))))))
       (bind ((there (recur-there start 0 0)))
         (format t "there: ~a~%" there)
         (setf cache (make-hash-table :test #'equal))
