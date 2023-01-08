@@ -1,6 +1,6 @@
 (defpackage 2022-day-1-pf
-  (:use :cl :iterate :cl-ppcre :metabang-bind :trivia :trivia.ppcre)
-  (:shadowing-import-from :arrow-macros :->>)
+  (:use :cl :metabang-bind)
+  (:shadowing-import-from :fset :with-first :reduce :sort :subseq :empty-seq)
   (:shadowing-import-from :arrow-macros :->))
 (in-package 2022-day-1-pf)
 
@@ -21,10 +21,10 @@
                (bind ((line (read-line f nil nil)))
                  (cond
                    ((null line)     acc)
-                   ((equal line "") (recur 0 (fset:with-first acc current)))
+                   ((equal line "") (recur 0 (with-first acc current)))
                    (t               (recur (+ current (read-from-string line))
                                            acc))))))
-      (fset:reduce #'+
-                   (-> (recur 0 (fset:empty-seq))
-                     (fset:sort #'>)
-                     (fset:subseq 0 3))))))
+      (reduce #'+
+              (-> (recur 0 (empty-seq))
+                (sort #'>)
+                (subseq 0 3))))))
