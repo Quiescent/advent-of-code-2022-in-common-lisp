@@ -29,3 +29,22 @@
                                    arb
                                    score))))))))
       (recur 0))))
+
+(defun part-2 ()
+  (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src-pf/2022-day-3.in"))
+    (labels ((group-score (group)
+               (->> (reduce #'intersection group)
+                 arb
+                 score))
+             (recur (group acc)
+               (bind ((line (read-line f nil nil)))
+                 (cond
+                   ((null line) (+ acc (if (= (length group) 3)
+                                           (group-score group)
+                                           0)))
+                   ((= (length group) 3)
+                    (recur (list (convert 'set line))
+                           (+ acc (group-score group))))
+                   (t (recur (cons (convert 'set line) group)
+                             acc))))))
+      (recur nil 0))))
