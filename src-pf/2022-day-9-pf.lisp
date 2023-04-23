@@ -77,3 +77,57 @@
   (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-9.in"))
     (->> (read-moves f)
       count-tail-positions)))
+
+(defun step-rope (knots move)
+  (labels
+      ((clip (x)
+         (cond
+           ((> x 0)  1)
+           ((< x 0) -1)
+           (t        0)))
+       (clipped-diff (head tail)
+         (bind ((diff (- head tail))
+                (x (realpart diff))
+                (y (imagpart diff)))
+           (cond
+             ((> x 1)  (complex 1 (clip y)))
+             ((< x -1) (complex -1 (clip y)))
+             ((> y 1)  (complex (clip x) 1))
+             ((< y -1) (complex (clip x) -1))
+             (t       0))))
+       (recur (acc remaining)
+         (if (empty? remaining)
+             acc
+             (bind ((head (first remaining))
+                    (tail (less-first remaining))
+                    (prev (last acc)))
+               (recur (with-last acc (+ head (clipped-diff prev head)))
+                      tail)))))
+    (recur (seq (+ (first knots) (decode-dir move)))
+           (less-first knots))))
+
+(defun run-moves (moves)
+  (bind ((init-knots (iter
+                       (for i from 0 below 10)
+                       (reducing (complex 0 0)
+                                 by #'with-last
+                                 :initial-value (seq)))))
+    (labels ((step-move (tails dir count knots)
+               (if (= count 0)
+                   (cons tails knots)
+                   (bind ((new-knots (step-rope knots dir))
+                          (new-tails (with tails (last new-knots))))
+                     (step-move new-tails dir (1- count) new-knots))))
+             (recur (tails rem-moves knots)
+               (if (null rem-moves)
+                   tails
+                   (bind ((((dir count) . rem) rem-moves)
+                          ((new-tails . new-knots) (step-move tails dir count knots)))
+                     (recur new-tails rem new-knots)))))
+      (recur (set) moves init-knots))))
+
+(defun part-2 ()
+  (with-open-file (f (asdf:system-relative-pathname :advent-of-code-2022-in-common-lisp "src/2022-day-9.in"))
+    (->> (read-moves f)
+      run-moves
+      size)))
